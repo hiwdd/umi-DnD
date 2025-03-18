@@ -1,6 +1,6 @@
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useState } from 'react';
-import BaseTreeData from './json'
+import BaseTreeData from './json';
 import { Tree } from 'antd';
 
 const { TreeNode } = Tree;
@@ -71,6 +71,18 @@ export default function DragMenu() {
     });
   };
 
+  const renderTreeNodes = (data) =>
+    data.map((item) => {
+      if (item.children) {
+        return (
+          <TreeNode title={item.name} key={item.code} dataRef={item}>
+            {renderTreeNodes(item.children)}
+          </TreeNode>
+        );
+      }
+      return <TreeNode key={item.code} {...item} />;
+    });
+
   return (
     <div style={{ display: 'flex', gap: '20px', padding: '20px' }}>
       <DragDropContext onDragEnd={onDragEnd}>
@@ -87,33 +99,9 @@ export default function DragMenu() {
               }}
             >
               <h3>源菜单</h3>
-              {sourceItems.map((item, index) => (
-                <Draggable 
-                  key={item.code} 
-                  draggableId={item.code} 
-                  isDragDisabled={usedSourceIds.has(item.code)}
-                  index={index}
-                >
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      style={{
-                        padding: '8px',
-                        margin: '4px 0',
-                        background: usedSourceIds.has(item.code) ? '#f8f9fa' : '#f0f0f0',
-                        border: `1px solid ${usedSourceIds.has(item.code) ? '#dee2e6' : '#ccc'}`,
-                        color: usedSourceIds.has(item.code) ? '#adb5bd' : 'inherit',
-                        ...provided.draggableProps.style,
-                        cursor: 'grab',
-                      }}
-                    >
-                      {item.name}
-                    </div>
-                  )}
-                </Draggable>
-              ))}
+              <Tree>
+                {renderTreeNodes(sourceItems)}
+              </Tree>
               {provided.placeholder}
             </div>
           )}
@@ -132,42 +120,9 @@ export default function DragMenu() {
               }}
             >
               <h3>目标菜单</h3>
-              {targetItems.map((item, index) => (
-                <Draggable key={item.uid} draggableId={item.uid} isDragDisabled={!item.draggable} index={index}>
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      style={{
-                        padding: '8px',
-                        margin: '4px 0',
-                        background: '#e3f2fd',
-                        border: '1px solid #90caf9',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        ...provided.draggableProps.style
-                      }}
-                    >
-                      <div {...provided.dragHandleProps}>
-                        {item.name}
-                      </div>
-                      <button 
-                        onClick={() => handleDelete(item)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#ff4444',
-                          cursor: 'pointer',
-                          fontSize: '1.2em'
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
+              <Tree>
+                {renderTreeNodes(targetItems)}
+              </Tree>
               {provided.placeholder}
             </div>
           )}
