@@ -1,0 +1,41 @@
+// 树节点样式
+.tree-node {
+    .tree-node-item {
+        width: 100%;
+        position: relative;
+        .ant-tree-node-content-wrapper {
+            flex: 1;
+        }
+    }
+}
+
+// 禁用拖拽样式
+.tree-drag-disabled {
+    cursor: not-allowed;
+    color: #666;
+    width: fit-content;
+}
+
+// 允许拖拽样式
+.tree-drag-enabled {
+    color: #2f54eb;
+    width: fit-content;
+    border: 1px solid #e0e0e0;
+    padding: 0px 4px;
+    background-color: #f6f6f6;
+    border-radius: 4px;
+}
+
+// 右侧拖拽删除区域
+.tree-drag-delete {
+    width: 100%;
+    display: flex;
+}
+
+// 删除图片
+.icon-close {
+    position: absolute;
+    right: 0;
+    height: 24px;
+    width: 24px;
+}
