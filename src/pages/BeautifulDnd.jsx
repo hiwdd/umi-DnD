@@ -61,16 +61,28 @@ export default function DragMenu() {
     });
   }
 
+  // 根据code查找在树结构中是否存在
+  const existsInTree = (data, code) => {
+    for (const item of data) {
+      if (item.code === code) return true;
+      if (item.children && existsInTree(item.children, code)) return true;
+    }
+    return false;
+  };
+
   // 根据code查找树结构中的index位置，并将指定节点插入此位置子级  返回新的树结构
   const insertNode = (data, code, node) => {
     if (!data.length && Object.keys(node).length) return [{...node}];
+    if (!existsInTree(data, code)) {
+      return [...data, node];
+    }
     return data.map(item => {
       if (item.code === code) {
         return {
           ...item,
           children: item.children ? [...item.children, node] : [node]
         }
-      }
+      } else 
       if (item.children) {
         return {
           ...item,
@@ -134,6 +146,10 @@ export default function DragMenu() {
       return newSet;
     });
   };
+
+  const onTreeDrop = (info ) => {
+    console.log('info', info)
+  }
 
   return (
     <div style={{ display: 'flex', gap: '20px', padding: '20px' }}>
@@ -233,7 +249,7 @@ export default function DragMenu() {
                   )}
                 </Draggable>
               ))} */}
-              <Tree treeData={targetItems} type="target" handleDelete={handleDelete} />
+              <Tree treeData={targetItems} type="target" handleDelete={handleDelete} onTreeDrop={onTreeDrop} />
               {provided.placeholder}
             </div>
           )}
