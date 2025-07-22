@@ -70,27 +70,22 @@ export default function DragMenu() {
     return false;
   };
 
-  // 根据code查找树结构中的index位置，并将指定节点插入此位置子级  返回新的树结构
+  // 根据code查找树结构中的index位置，并将指定节点插入此位置同级  返回新的树结构
   const insertNode = (data, code, node) => {
     if (!data.length && Object.keys(node).length) return [{...node}];
     if (!existsInTree(data, code)) {
       return [...data, node];
     }
-    return data.map(item => {
+    const result = Array.from(data);
+    let insertIndex = 0
+    result.map((item, index) => {
       if (item.code === code) {
-        return {
-          ...item,
-          children: item.children ? [...item.children, node] : [node]
-        }
-      } else 
-      if (item.children) {
-        return {
-          ...item,
-          children: insertNode(item.children, code, node)
-        }
+       insertIndex = index
       }
-      return item;
     });
+    result.splice(insertIndex, 0, node);
+    console.log('insertIndex==', insertIndex, 'result==', result)
+    return result;
   }
 
   // 处理拖拽结束
@@ -114,13 +109,7 @@ export default function DragMenu() {
           uid: `${item.code}-${Date.now()}`
         };
         
-       console.log('insertNode',  insertNode(targetItems, destination.index, newItem));
         setTargetItems(insertNode(targetItems, destination.index, newItem));
-        // setTargetItems(prev => {
-        //   const newTarget = Array.from(prev);
-        //   newTarget.splice(destination.index, 0, newItem);
-        //   return newTarget;
-        // });
 
         const codes = [];
         exportCode([item], codes);
@@ -136,6 +125,7 @@ export default function DragMenu() {
 
   // 删除目标项
   const handleDelete = (data) => {
+    console.log('data', data)
     setTargetItems(prev => deleteNode(prev, data.code));
     // 移除标记该源项目已被使用的
     const codes = [];
@@ -149,6 +139,54 @@ export default function DragMenu() {
 
   const onTreeDrop = (info ) => {
     console.log('info', info)
+    const dropKey = info.node.key;
+    const dragKey = info.dragNode.key;
+    const dropPos = info.node.pos.split('-');
+    const dropPosition = info.dropPosition - Number(dropPos[dropPos.length - 1]);
+
+    const data = [...targetItems];
+    let dragObj;
+
+    finedObject(data, dragKey, (index, arr, item) => {
+      arr.splice(index, 1);
+      dragObj = item;
+      dragObj.parentId = '';
+    });
+
+    if (!info.dropToGap) {
+      finedObject(data, dropKey, (_i, _arr, item) => {
+        item.children = item.children || [];
+        dragObj.parentId = item.id;
+
+        item.children.unshift(dragObj);
+      });
+    } else if (
+      ((info.node).props.children || []).length > 0 &&
+      (info.node).props.expanded &&
+      dropPosition === 1
+    ) {
+      finedObject(data, dropKey, (_i, _arr, item) => {
+        item.children = item.children || [];
+        dragObj.parentId = item.id;
+
+        item.children.unshift(dragObj);
+      });
+    } else {
+      let ar = [];
+      let i;
+      finedObject(data, dropKey, (index, arr, item) => {
+        ar = arr;
+        i = index;
+        dragObj.parentId = item.parentId;
+      });
+      if (dropPosition === -1) {
+        ar.splice(i, 0, dragObj);
+      } else {
+        ar.splice(i + 1, 0, dragObj);
+      }
+    }
+    setTargetItems([...data]);
+    console.log('data', data)
   }
 
   return (
@@ -159,41 +197,16 @@ export default function DragMenu() {
           {(provided) => (
             <div
               {...provided.droppableProps}
+              {...provided.dragHandleProps}
               ref={provided.innerRef}
               style={{
+                ...provided.droppableProps.style,
                 width: '500px',
                 border: '1px solid #ddd',
                 padding: '10px'
               }}
             >
               <h3>源菜单</h3>
-              {/* {sourceItems.map((item, index) => (
-                <Draggable 
-                  key={item.code} 
-                  draggableId={item.code} 
-                  isDragDisabled={usedSourceIds.has(item.code)}
-                  index={index}
-                >
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      style={{
-                        padding: '8px',
-                        margin: '4px 0',
-                        background: usedSourceIds.has(item.code) ? '#f8f9fa' : '#f0f0f0',
-                        border: `1px solid ${usedSourceIds.has(item.code) ? '#dee2e6' : '#ccc'}`,
-                        color: usedSourceIds.has(item.code) ? '#adb5bd' : 'inherit',
-                        ...provided.draggableProps.style,
-                        cursor: 'grab',
-                      }}
-                    >
-                      {item.name}
-                    </div>
-                  )}
-                </Draggable>
-              ))} */}
               <Tree treeData={sourceItems} type="source" usedSourceIds={usedSourceIds} />
               {provided.placeholder}
             </div>
@@ -213,42 +226,6 @@ export default function DragMenu() {
               }}
             >
               <h3>目标菜单</h3>
-              {/* {targetItems.map((item, index) => (
-                <Draggable key={item.uid} draggableId={item.uid} isDragDisabled={!item.draggable} index={index}>
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      style={{
-                        padding: '8px',
-                        margin: '4px 0',
-                        background: '#e3f2fd',
-                        border: '1px solid #90caf9',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        ...provided.draggableProps.style
-                      }}
-                    >
-                      <div {...provided.dragHandleProps}>
-                        {item.name}
-                      </div>
-                      <button 
-                        onClick={() => handleDelete(item)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#ff4444',
-                          cursor: 'pointer',
-                          fontSize: '1.2em'
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
-                </Draggable>
-              ))} */}
               <Tree treeData={targetItems} type="target" handleDelete={handleDelete} onTreeDrop={onTreeDrop} />
               {provided.placeholder}
             </div>
